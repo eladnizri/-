@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBT — תמי</title>
+<style>
+:root {
+  --bg: #f0f2fa;
+  --card: #ffffff;
+  --sidebar: #12152e;
+  --sidebar-hover: rgba(255,255,255,0.07);
+  --primary: #6366f1;
+  --primary-d: #4f46e5;
+  --primary-l: #eef2ff;
+  --pink: #d946ef;
+  --pink-l: #fdf4ff;
+  --green: #10b981;
+  --green-l: #ecfdf5;
+  --amber: #f59e0b;
+  --amber-l: #fffbeb;
+  --red: #ef4444;
+  --red-l: #fef2f2;
+  --border: #e4e8f5;
+  --t1: #0f172a;
+  --t2: #64748b;
+  --t3: #94a3b8;
+  --r: 14px;
+  --rl: 20px;
+  --sh: 0 2px 12px rgba(0,0,0,0.06);
+  --shm: 0 8px 30px rgba(0,0,0,0.1);
+  --shl: 0 20px 50px rgba(0,0,0,0.14);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; direction:rtl; background:var(--bg); color:var(--t1); font-size:15px; line-height:1.6; }
+
+/* ── LAYOUT ── */
+.app { display:flex; min-height:100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width:270px; flex-shrink:0;
+  background:var(--sidebar);
+  display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh; overflow:hidden;
+}
+
+.sb-logo {
+  padding:24px 18px 18px;
+  display:flex; align-items:center; gap:10px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  cursor:pointer;
+}
+.sb-logo-icon {
+  width:36px; height:36px; border-radius:10px;
+  background:var(--primary);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px;
+}
+.sb-logo-text { color:white; font-size:17px; font-weight:800; letter-spacing:0.3px; }
+.sb-logo-sub { color:rgba(255,255,255,0.35); font-size:11px; }
+
+.sb-nav { padding:12px 10px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.sb-nav-item {
+  display:flex; align-items:center; gap:10px;
+  padding:11px 12px; border-radius:10px; cursor:pointer;
+  font-size:14px; font-weight:600; color:rgba(255,255,255,0.55);
+  transition:all 0.18s; border:none; background:none; width:100%; text-align:right;
+}
+.sb-nav-item:hover { background:var(--sidebar-hover); color:rgba(255,255,255,0.9); }
+.sb-nav-item.on { background:var(--primary); color:white; }
+.sb-nav-icon { font-size:17px; min-width:22px; text-align:center; }
+
+.sb-patients { flex:1; overflow-y:auto; padding:10px; }
+.sb-patients::-webkit-scrollbar { width:3px; }
+.sb-patients::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.12); border-radius:3px; }
+
+.sb-label { font-size:10px; font-weight:700; color:rgba(255,255,255,0.28); text-transform:uppercase; letter-spacing:1.2px; padding:10px 12px 6px; }
+
+.sb-search { position:relative; margin-bottom:8px; }
+.sb-search-input {
+  width:100%; background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1); color:white;
+  padding:9px 12px; border-radius:9px;
+  font-size:13px; font-family:inherit; direction:rtl;
+}
+.sb-search-input::placeholder { color:rgba(255,255,255,0.28); }
+.sb-search-input:focus { outline:none; border-color:var(--primary); background:rgba(255,255,255,0.09); }
+
+.sb-patient-item {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; border-radius:10px; cursor:pointer;
+  transition:background 0.15s;
+}
+.sb-patient-item:hover { background:rgba(255,255,255,0.07); }
+.sb-patient-item.on { background:rgba(99,102,241,0.22); }
+.sb-patient-name { font-size:14px; font-weight:600; color:rgba(255,255,255,0.7); flex:1; }
+.sb-patient-item.on .sb-patient-name { color:white; }
+.sb-patient-count { font-size:11px; color:rgba(255,255,255,0.28); }
+
+.sb-bottom { padding:12px 10px; border-top:1px solid rgba(255,255,255,0.06); }
+.sb-add {
+  width:100%; background:var(--primary); color:white;
+  border:none; padding:12px; border-radius:10px;
+  font-weight:700; font-size:14px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  transition:all 0.2s;
+}
+.sb-add:hover { background:var(--primary-d); transform:translateY(-1px); }
+
+/* avatar */
+.av {
+  border-radius:9px; display:flex; align-items:center;
+  justify-content:center; font-weight:800; color:white; flex-shrink:0;
+}
+.av-sm { width:32px; height:32px; font-size:12px; border-radius:8px; }
+.av-md { width:44px; height:44px; font-size:16px; }
+.av-lg { width:60px; height:60px; font-size:22px; border-radius:16px; }
+
+/* ── MAIN ── */
+.main { flex:1; overflow-y:auto; min-width:0; padding:36px 40px; }
+
+.hidden { display:none !important; }
+.view { animation:fadeUp 0.28s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* page header */
+.ph { margin-bottom:26px; }
+.ph-title { font-size:27px; font-weight:800; color:var(--t1); }
+.ph-sub { font-size:15px; color:var(--t2); margin-top:3px; }
+
+/* ── STATS GRID ── */
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:26px; }
+.stat-card {
+  background:var(--card); border-radius:var(--rl);
+  padding:22px; box-shadow:var(--sh); border:1px solid var(--border);
+  position:relative; overflow:hidden;
+}
+.stat-stripe { position:absolute; top:0; right:0; width:4px; height:100%; }
+.stat-label { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px; }
+.stat-val { font-size:32px; font-weight:800; color:var(--t1); line-height:1; margin-bottom:5px; }
+.stat-sub { font-size:13px; color:var(--t2); }
+.stat-emoji { position:absolute; left:18px; top:50%; transform:translateY(-50%); font-size:34px; opacity:0.13; }
+
+/* ── SECTION ── */
+.sec { margin-bottom:26px; }
+.sec-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.sec-title { font-size:18px; font-weight:800; color:var(--t1); }
+
+.btn-add {
+  display:flex; align-items:center; gap:6px;
+  background:var(--primary-l); color:var(--primary);
+  border:none; padding:9px 16px; border-radius:9px;
+  font-size:13px; font-weight:700; cursor:pointer; transition:all 0.18s;
+}
+.btn-add:hover { background:var(--primary); color:white; }
+.btn-add.pink-v { background:var(--pink-l); color:var(--pink); }
+.btn-add.pink-v:hover { background:var(--pink); color:white; }
+
+/* ── PATIENT CARDS (dashboard) ── */
+.pts-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+.pt-card {
+  background:var(--card); border-radius:var(--rl);
+  border:1px solid var(--border); box-shadow:var(--sh);
+  padding:20px; cursor:pointer; transition:all 0.22s;
+}
+.pt-card:hover { transform:translateY(-4px); box-shadow:var(--shl); border-color:var(--primary); }
+.pt-card-top { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.pt-card-name { font-size:16px; font-weight:700; color:var(--t1); }
+.pt-card-age { font-size:13px; color:var(--t2); }
+.pt-card-stats { display:flex; gap:10px; }
+.pt-mini-stat { flex:1; background:var(--bg); border-radius:9px; padding:10px; text-align:center; }
+.pt-mini-stat .v { font-size:18px; font-weight:800; color:var(--primary); }
+.pt-mini-stat .l { font-size:10px; color:var(--t3); font-weight:600; }
+
+/* ── PATIENT DETAIL ── */
+.pt-header {
+  background:var(--card); border-radius:var(--rl); padding:26px;
+  margin-bottom:20px; box-shadow:var(--sh); border:1px solid var(--border);
+}
+.pt-header-top { display:flex; align-items:flex-start; gap:16px; margin-bottom:18px; }
+.pt-header-name { font-size:26px; font-weight:800; color:var(--t1); margin-bottom:4px; }
+.pt-header-meta { font-size:14px; color:var(--t2); }
+.pt-header-edit { margin-right:auto; width:40px; height:40px; background:var(--bg); border:1px solid var(--border); border-radius:10px; cursor:pointer; font-size:17px; display:flex; align-items:center; justify-content:center; transition:all 0.18s; }
+.pt-header-edit:hover { border-color:var(--primary); color:var(--primary); }
+.pt-header-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.pt-stat { background:var(--bg); border-radius:11px; padding:14px; text-align:center; }
+.pt-stat .v { font-size:22px; font-weight:800; margin-bottom:3px; }
+.pt-stat .l { font-size:11px; color:var(--t3); font-weight:600; text-transform:uppercase; }
+
+.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+.info-chip { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:14px 16px; box-shadow:var(--sh); }
+.info-chip.full { grid-column:1/-1; }
+.info-chip-lbl { font-size:10px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:5px; }
+.info-chip-val { font-size:15px; font-weight:600; color:var(--t1); }
+
+/* ── METRICS ── */
+.metrics-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; margin-bottom:16px; }
+.metric-card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r);
+  padding:18px; box-shadow:var(--sh); text-align:center;
+}
+.metric-type { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+.metric-score { font-size:34px; font-weight:800; color:var(--primary); line-height:1; margin-bottom:6px; }
+.metric-date { font-size:12px; color:var(--t3); }
+
+/* ── TREATMENT CARDS ── */
+.tr-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+.tr-card { background:var(--card); border:1px solid var(--border); border-radius:var(--rl); overflow:hidden; box-shadow:var(--sh); transition:all 0.22s; }
+.tr-card:hover { transform:translateY(-3px); box-shadow:var(--shm); }
+.tr-card-head { background:linear-gradient(135deg,#4f46e5,#818cf8); padding:14px 18px; color:white; display:flex; align-items:center; justify-content:space-between; }
+.tr-session-num { font-size:12px; font-weight:700; opacity:0.75; }
+.tr-session-date { font-size:16px; font-weight:800; }
+.tr-card-body { padding:16px 18px; }
+.tr-field { margin-bottom:12px; }
+.tr-field:last-child { margin-bottom:0; }
+.tr-field-lbl { font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+.tr-field-val { font-size:14px; color:var(--t1); background:var(--bg); padding:10px 12px; border-radius:8px; white-space:pre-wrap; line-height:1.5; }
+.tr-actions { display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+.btn-act { flex:1; border:none; border-radius:8px; padding:9px; cursor:pointer; font-size:13px; font-weight:700; transition:all 0.18s; }
+.btn-act.edit { background:var(--primary-l); color:var(--primary); }
+.btn-act.edit:hover { background:var(--primary); color:white; }
+.btn-act.del { background:var(--red-l); color:var(--red); }
+.btn-act.del:hover { background:var(--red); color:white; }
+
+/* ── INCOME ── */
+.income-hero {
+  background:linear-gradient(135deg,#12152e,#1e2460);
+  border-radius:var(--rl); padding:30px; margin-bottom:22px;
+  color:white; display:flex; justify-content:space-between; align-items:center;
+  box-shadow:var(--shm);
+}
+.income-hero-label { font-size:13px; opacity:0.65; margin-bottom:6px; }
+.income-hero-total { font-size:44px; font-weight:800; line-height:1; }
+.income-hero-sub { font-size:13px; opacity:0.55; margin-top:6px; }
+.income-hero-icon { font-size:56px; opacity:0.25; }
+
+.income-table { background:var(--card); border-radius:var(--rl); border:1px solid var(--border); box-shadow:var(--sh); overflow:hidden; margin-bottom:22px; }
+.income-row { display:flex; align-items:center; padding:15px 20px; gap:14px; border-bottom:1px solid var(--border); }
+.income-row:last-child { border-bottom:none; }
+.income-row-name { font-weight:700; font-size:15px; }
+.income-row-sub { font-size:12px; color:var(--t3); margin-top:2px; }
+.income-bar-wrap { flex:1; background:var(--bg); border-radius:6px; height:8px; overflow:hidden; }
+.income-bar { height:100%; background:linear-gradient(90deg,var(--primary),#818cf8); border-radius:6px; transition:width 0.6s ease; }
+.income-row-total { font-weight:800; color:var(--primary); font-size:16px; min-width:75px; text-align:left; }
+.income-row-month { font-size:12px; color:var(--t3); }
+
+/* ── MODALS ── */
+.modal-bg {
+  display:none; position:fixed; inset:0;
+  background:rgba(10,12,30,0.65);
+  z-index:800; align-items:center; justify-content:center;
+  padding:20px; backdrop-filter:blur(4px);
+}
+.modal-bg.show { display:flex; }
+.modal {
+  background:var(--card); border-radius:var(--rl);
+  padding:30px; width:100%; max-width:530px;
+  max-height:92vh; overflow-y:auto;
+  box-shadow:var(--shl);
+  animation:fadeUp 0.25s ease;
+}
+.modal::-webkit-scrollbar { width:3px; }
+.modal::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+.modal-title { font-size:21px; font-weight:800; color:var(--t1); margin-bottom:22px; }
+
+.field { margin-bottom:16px; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.field label { display:block; font-size:11px; font-weight:700; color:var(--t3); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:7px; }
+.field input,.field textarea,.field select {
+  width:100%; padding:12px 14px; border:2px solid var(--border);
+  border-radius:10px; font-size:15px; font-family:inherit;
+  direction:rtl; color:var(--t1); background:var(--card); transition:border-color 0.18s;
+}
+.field input:focus,.field textarea:focus,.field select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(99,102,241,0.1); }
+.field textarea { min-height:88px; resize:vertical; }
+
+.modal-actions { display:flex; gap:10px; margin-top:22px; }
+.btn-save { flex:1; padding:13px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:700; font-size:15px; cursor:pointer; transition:all 0.18s; }
+.btn-save:hover { background:var(--primary-d); transform:translateY(-1px); }
+.btn-cancel { flex:1; padding:13px; background:var(--bg); color:var(--t2); border:1px solid var(--border); border-radius:10px; font-weight:700; font-size:15px; cursor:pointer; transition:all 0.18s; }
+.btn-cancel:hover { background:var(--border); }
+.btn-del-full { width:100%; padding:13px; background:var(--red-l); color:var(--red); border:1px solid #fecaca; border-radius:10px; font-weight:700; font-size:15px; cursor:pointer; margin-top:12px; transition:all 0.18s; }
+.btn-del-full:hover { background:var(--red); color:white; }
+
+/* ── MOBILE HEADER ── */
+.mob-header { display:none; position:fixed; top:0; left:0; right:0; height:58px; background:var(--sidebar); z-index:300; align-items:center; padding:0 16px; gap:12px; }
+.mob-logo { font-size:17px; font-weight:800; color:white; flex:1; }
+.mob-menu-btn { width:38px; height:38px; border:none; background:rgba(255,255,255,0.1); border-radius:9px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+.mob-menu-btn span { width:18px; height:2px; background:white; border-radius:2px; }
+
+/* ── MOBILE BOTTOM NAV ── */
+.mob-bottom { display:none; position:fixed; bottom:0; left:0; right:0; height:62px; background:var(--sidebar); border-top:1px solid rgba(255,255,255,0.07); z-index:300; align-items:center; justify-content:space-around; padding:0 6px; }
+.mob-nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:none; background:none; cursor:pointer; padding:8px 4px; }
+.mob-nav-btn .ni { font-size:19px; }
+.mob-nav-btn .nl { font-size:10px; font-weight:700; color:rgba(255,255,255,0.38); }
+.mob-nav-btn.on .nl { color:var(--primary); }
+.mob-nav-fab { width:46px; height:46px; background:var(--primary); border:none; border-radius:13px; cursor:pointer; font-size:22px; display:flex; align-items:center; justify-content:center; transition:all 0.18s; }
+.mob-nav-fab:hover { background:var(--primary-d); }
+
+/* ── MOBILE SLIDE PANEL ── */
+.mob-panel-overlay { display:none; position:fixed; inset:0; z-index:500; }
+.mob-panel-overlay.show { display:block; }
+.mob-panel-bg { position:fixed; inset:0; background:rgba(0,0,0,0.5); }
+.mob-panel {
+  position:fixed; top:0; right:0; bottom:0; width:275px;
+  background:var(--sidebar); overflow-y:auto;
+  transform:translateX(100%); transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  box-shadow:var(--shl); z-index:1;
+}
+.mob-panel-overlay.show .mob-panel { transform:translateX(0); }
+
+/* ── REPORT FILTER CHIPS ── */
+.rf-chip {
+  display:inline-flex; align-items:center; gap:7px;
+  padding:7px 13px; border-radius:20px; cursor:pointer;
+  font-size:13px; font-weight:600; transition:all 0.15s;
+  border:2px solid var(--border); background:var(--card); color:var(--t2);
+  user-select:none;
+}
+.rf-chip.on { border-color:var(--primary); background:var(--primary-l); color:var(--primary); }
+.rf-chip .rf-check { width:16px; height:16px; border-radius:5px; border:2px solid var(--t3); display:flex; align-items:center; justify-content:center; font-size:10px; }
+.rf-chip.on .rf-check { background:var(--primary); border-color:var(--primary); color:white; }
+
+/* ── EMPTY ── */
+.empty { text-align:center; padding:44px 20px; color:var(--t3); }
+.empty-icon { font-size:44px; margin-bottom:10px; }
+.empty-t { font-size:16px; font-weight:700; color:var(--t2); margin-bottom:5px; }
+.empty-s { font-size:14px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width:860px) {
+  .sidebar { display:none; }
+  .mob-header { display:flex; }
+  .mob-bottom { display:flex; }
+  .main { padding:78px 16px 82px; }
+  .stats { grid-template-columns:1fr 1fr; }
+  .stat-val { font-size:26px; }
+  .pts-grid { grid-template-columns:1fr; }
+  .metrics-grid { grid-template-columns:1fr 1fr; }
+  .tr-grid { grid-template-columns:1fr; }
+  .pt-header-stats { grid-template-columns:repeat(3,1fr); }
+  .info-grid { grid-template-columns:1fr; }
+  .field-row { grid-template-columns:1fr; }
+  .income-hero { flex-direction:column; gap:10px; text-align:center; }
+  .income-hero-icon { display:none; }
+  .income-hero-total { font-size:34px; }
+  .income-row { flex-wrap:wrap; gap:8px; }
+  .income-bar-wrap { width:100%; order:3; }
+}
+@media (max-width:480px) {
+  .stats { grid-template-columns:1fr; }
+  .pt-header-stats { grid-template-columns:1fr 1fr 1fr; }
+  .modal { padding:22px 16px; }
+  .metrics-grid { grid-template-columns:1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- MOBILE HEADER -->
+<header class="mob-header">
+  <div class="mob-logo">🧠 CBT</div>
+  <button class="mob-menu-btn" onclick="openMobPanel()"><span></span><span></span><span></span></button>
+</header>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mob-bottom">
+  <button class="mob-nav-btn on" id="mob-btn-home" onclick="mobNav('home')"><div class="ni">🏠</div><div class="nl">בית</div></button>
+  <button class="mob-nav-btn" id="mob-btn-patients" onclick="mobNav('patients')"><div class="ni">👥</div><div class="nl">מטופלים</div></button>
+  <button class="mob-nav-fab" onclick="openPatientModal(false)">＋</button>
+  <button class="mob-nav-btn" id="mob-btn-income" onclick="mobNav('income')"><div class="ni">💰</div><div class="nl">הכנסות</div></button>
+  <button class="mob-nav-btn" id="mob-btn-report" onclick="mobNav('report')"><div class="ni">📊</div><div class="nl">דוח</div></button>
+</nav>
+
+<!-- MOBILE SLIDE PANEL -->
+<div class="mob-panel-overlay" id="mobPanelOverlay">
+  <div class="mob-panel-bg" onclick="closeMobPanel()"></div>
+  <div class="mob-panel" id="mobPanel">
+    <div class="sb-logo" style="padding:20px 16px 16px;" onclick="closeMobPanel();showView('home')">
+      <div class="sb-logo-icon">🧠</div>
+      <div><div class="sb-logo-text">CBT Tracker</div><div class="sb-logo-sub">תמי — מעקב מטופלים</div></div>
+    </div>
+    <div class="sb-nav">
+      <button class="sb-nav-item" onclick="closeMobPanel();showView('home')"><span class="sb-nav-icon">🏠</span> לוח בקרה</button>
+      <button class="sb-nav-item" onclick="closeMobPanel();showView('income')"><span class="sb-nav-icon">💰</span> הכנסות</button>
+      <button class="sb-nav-item" onclick="closeMobPanel();showView('report')"><span class="sb-nav-icon">📊</span> דוח תקופתי</button>
+    </div>
+    <div class="sb-patients" id="mobPatientsList"></div>
+    <div class="sb-bottom">
+      <button class="sb-add" onclick="closeMobPanel();openPatientModal(false)">＋ מטופל חדש</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-logo" onclick="showView('home')">
+      <div class="sb-logo-icon">🧠</div>
+      <div><div class="sb-logo-text">CBT Tracker</div><div class="sb-logo-sub">תמי — מעקב מטופלים</div></div>
+    </div>
+    <div class="sb-nav">
+      <button class="sb-nav-item on" id="nav-home" onclick="showView('home')"><span class="sb-nav-icon">🏠</span> לוח בקרה</button>
+      <button class="sb-nav-item" id="nav-income" onclick="showView('income')"><span class="sb-nav-icon">💰</span> הכנסות</button>
+      <button class="sb-nav-item" id="nav-report" onclick="showView('report')"><span class="sb-nav-icon">📊</span> דוח תקופתי</button>
+    </div>
+    <div class="sb-patients">
+      <div class="sb-label">מטופלים</div>
+      <div class="sb-search"><input class="sb-search-input" id="sbSearch" placeholder="חיפוש מטופל..." oninput="filterPatients(this.value)"></div>
+      <div id="sbPatientsList"></div>
+    </div>
+    <div class="sb-bottom">
+      <button class="sb-add" onclick="openPatientModal(false)">＋ מטופל חדש</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- HOME / DASHBOARD -->
+    <div id="view-home" class="view">
+      <div class="ph">
+        <div class="ph-title" id="homeGreeting">👋 שלום, תמי!</div>
+        <div class="ph-sub" id="homeDate"></div>
+      </div>
+
+      <div class="stats" id="dashStats"></div>
+
+      <div class="sec">
+        <div class="sec-hd">
+          <div class="sec-title">כל המטופלים</div>
+          <button class="btn-add" onclick="openPatientModal(false)">＋ מטופל חדש</button>
+        </div>
+        <div class="pts-grid" id="dashPatients"></div>
+      </div>
+    </div>
+
+    <!-- PATIENT DETAIL -->
+    <div id="view-patient" class="view hidden">
+      <div id="ptHeaderArea"></div>
+      <div class="info-grid" id="ptInfoGrid"></div>
+
+      <div class="sec">
+        <div class="sec-hd">
+          <div class="sec-title">📊 מהלך הטיפול</div>
+          <button class="btn-add pink-v" onclick="openMetricModal()">＋ הוסף מדד</button>
+        </div>
+        <div class="metrics-grid" id="ptMetrics"></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-hd">
+          <div class="sec-title">🎯 כרטיסיות טיפול</div>
+          <button class="btn-add" onclick="openTreatmentModal(null)">＋ הוסף כרטיסיה</button>
+        </div>
+        <div class="tr-grid" id="ptTreatments"></div>
+      </div>
+    </div>
+
+    <!-- INCOME -->
+    <div id="view-income" class="view hidden">
+      <div class="ph">
+        <div class="ph-title">💰 הכנסות</div>
+        <div class="ph-sub">מעקב הכנסות לפי חודש ומטופל</div>
+      </div>
+      <div class="income-hero">
+        <div>
+          <div class="income-hero-label">סה"כ הכנסות — כל הזמן</div>
+          <div class="income-hero-total" id="incomeTotal">₪0</div>
+          <div class="income-hero-sub" id="incomeThisMonth"></div>
+        </div>
+        <div class="income-hero-icon">💰</div>
+      </div>
+      <div class="sec">
+        <div class="sec-hd"><div class="sec-title">📅 לפי חודש</div></div>
+        <div class="income-table" id="incomeByMonth"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-hd"><div class="sec-title">👤 לפי מטופל</div></div>
+        <div class="income-table" id="incomeByPatient"></div>
+      </div>
+    </div>
+
+    <!-- REPORT -->
+    <div id="view-report" class="view hidden">
+      <div class="ph">
+        <div class="ph-title">📊 דוח תקופתי</div>
+        <div class="ph-sub">סיכום לדיווח — בחר תקופה</div>
+      </div>
+      <div class="stat-card" style="margin-bottom:18px;">
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+          <div class="field" style="margin:0;flex:1;min-width:140px;">
+            <label>מ-תאריך</label>
+            <input type="date" id="reportFrom">
+          </div>
+          <div class="field" style="margin:0;flex:1;min-width:140px;">
+            <label>עד-תאריך</label>
+            <input type="date" id="reportTo">
+          </div>
+          <button class="btn-save" style="flex:none;margin-top:18px;" onclick="generateReport()">הפק דוח</button>
+        </div>
+        <div style="margin-top:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <label style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:0.6px;">מטופלים בדוח</label>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-add" style="padding:5px 12px;font-size:12px;" onclick="toggleAllReportPatients(true)">בחר הכל</button>
+              <button class="btn-add pink-v" style="padding:5px 12px;font-size:12px;" onclick="toggleAllReportPatients(false)">נקה הכל</button>
+            </div>
+          </div>
+          <div id="reportPatientFilter" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+        </div>
+      </div>
+      <div id="reportOutput"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- PATIENT MODAL -->
+<div class="modal-bg" id="patientModal">
+  <div class="modal">
+    <div class="modal-title" id="patientModalTitle">מטופל חדש</div>
+    <form id="patientForm">
+      <div class="field-row">
+        <div class="field"><label>שם מלא</label><input type="text" id="fName" required></div>
+        <div class="field"><label>גיל</label><input type="number" id="fAge" required min="1" max="120"></div>
+      </div>
+      <div class="field"><label>תאריך התחלה</label><input type="date" id="fDate" required></div>
+      <div class="field"><label>סיבת התייעצות</label><textarea id="fReason"></textarea></div>
+      <div class="modal-actions">
+        <button type="submit" class="btn-save">💾 שמור</button>
+        <button type="button" class="btn-cancel" onclick="closeModal('patientModal')">ביטול</button>
+      </div>
+      <button type="button" class="btn-del-full hidden" id="deletePatientBtn" onclick="confirmDeletePatient()">🗑️ מחק מטופל</button>
+    </form>
+  </div>
+</div>
+
+<!-- METRIC MODAL -->
+<div class="modal-bg" id="metricModal">
+  <div class="modal">
+    <div class="modal-title">📈 הוסף מדד</div>
+    <form id="metricForm">
+      <div class="field">
+        <label>סוג מדד</label>
+        <select id="mType" required>
+          <option value="">בחר סוג</option>
+          <option value="anxiety">שאלון חרדה (GAD)</option>
+          <option value="depression">שאלון דיכאון (PHQ)</option>
+          <option value="mood1">יומן מצב רוח 1</option>
+          <option value="mood2">יומן מצב רוח 2</option>
+          <option value="mood3">יומן מצב רוח 3</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>תאריך</label><input type="date" id="mDate" required></div>
+        <div class="field"><label>סה"כ ניקוד</label><input type="number" id="mScore" required></div>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn-save">💾 שמור</button>
+        <button type="button" class="btn-cancel" onclick="closeModal('metricModal')">ביטול</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- TREATMENT MODAL -->
+<div class="modal-bg" id="treatmentModal">
+  <div class="modal">
+    <div class="modal-title" id="treatmentModalTitle">הוסף כרטיסיה</div>
+    <form id="treatmentForm">
+      <div class="field-row">
+        <div class="field"><label>תאריך הטיפול</label><input type="date" id="tDate" required></div>
+        <div class="field"><label>סכום (₪)</label><input type="number" id="tAmount" value="300" min="0" step="10" required></div>
+      </div>
+      <div class="field"><label>שיעורי בית</label><textarea id="tHomework" placeholder="תיאור שיעורי הבית..."></textarea></div>
+      <div class="field"><label>נושאים שעובדו בטיפול</label><textarea id="tTopics" placeholder="נושאים, טכניקות, תובנות..."></textarea></div>
+      <div class="modal-actions">
+        <button type="submit" class="btn-save">💾 שמור</button>
+        <button type="button" class="btn-cancel" onclick="closeModal('treatmentModal')">ביטול</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-bg" id="confirmModal">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-title" style="font-size:18px;" id="confirmText">אישור פעולה</div>
+    <div id="confirmSubText" style="font-size:14px;color:var(--t2);margin-bottom:6px;"></div>
+    <div class="modal-actions">
+      <button class="btn-save" id="confirmYes" style="background:var(--red);">כן, למחוק</button>
+      <button class="btn-cancel" onclick="closeModal('confirmModal')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- PATIENTS LIST MODAL (mobile) -->
+<div class="modal-bg" id="patientsListModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title">בחרי מטופל</div>
+    <button class="sb-add" style="margin-bottom:14px;" onclick="closeModal('patientsListModal');openPatientModal(false)">＋ מטופל חדש</button>
+    <div id="patientsPickerList"></div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn-cancel" onclick="closeModal('patientsListModal')">סגור</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────
+let patients = {};
+let currentId = null;
+let editingTreatmentId = null;
+
+const METRIC_NAMES = {
+  anxiety: 'שאלון חרדה', depression: 'שאלון דיכאון',
+  mood1: 'יומן מצב רוח 1', mood2: 'יומן מצב רוח 2', mood3: 'יומן מצב רוח 3'
+};
+
+const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+const AVATAR_COLORS = [
+  '#6366f1','#d946ef','#0891b2','#059669','#d97706',
+  '#e11d48','#7c3aed','#0284c7','#16a34a','#b45309'
+];
+
+function avatarColor(id) { return AVATAR_COLORS[(Object.keys(patients).indexOf(id)||0) % AVATAR_COLORS.length]; }
+function initials(name) {
+  const parts = (name||'?').trim().split(' ');
+  return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+}
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('he-IL') : '—'; }
+function trAmount(t) { return t.amount!=null ? t.amount : 300; }
+function patientTotal(p) { return (p.treatments||[]).reduce((s,t)=>s+trAmount(t),0); }
+function fmtMonthKey(k) { if (!k||k==='no-date') return 'ללא תאריך'; const [y,m]=k.split('-'); return MONTHS_HE[+m-1]+' '+y; }
+function esc(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+function genId() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+
+// ─── LOAD / SAVE ─────────────────────────────────────────
+function load() {
+  try { const s=localStorage.getItem('cbtPatients'); patients=s?JSON.parse(s):{}; }
+  catch(e) { patients={}; }
+}
+function save() { localStorage.setItem('cbtPatients', JSON.stringify(patients)); }
+
+// ─── NAVIGATION ──────────────────────────────────────────
+let currentView = 'home';
+
+function showView(v) {
+  currentView = v;
+  ['home','patient','income','report'].forEach(n => {
+    document.getElementById('view-'+n).classList.toggle('hidden', n !== v);
+  });
+  ['nav-home','nav-income','nav-report'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('on', id === 'nav-'+v || (v==='patient' && id==='nav-home'));
+  });
+  if (v==='home') renderDashboard();
+  if (v==='income') renderIncome();
+  if (v==='report') initReport();
+  updateMobNav();
+}
+
+function updateMobNav() {
+  ['home','patients','income','report'].forEach(n => {
+    const btn = document.getElementById('mob-btn-'+n);
+    if(btn) {
+      const isOn = (n==='patients' && currentView==='patient') || n===currentView || (n==='home' && currentView==='home');
+      btn.classList.toggle('on', isOn);
+    }
+  });
+}
+
+function mobNav(v) {
+  if (v==='patients') {
+    renderPickerList();
+    document.getElementById('patientsListModal').classList.add('show');
+  } else {
+    showView(v);
+  }
+}
+
+// ─── SIDEBAR PATIENTS ─────────────────────────────────────
+function renderSidebar(filter='') {
+  const list = document.getElementById('sbPatientsList');
+  const all = Object.values(patients).filter(p => !filter || p.name.includes(filter));
+  list.innerHTML = all.length===0
+    ? '<div style="color:rgba(255,255,255,0.3);font-size:13px;text-align:center;padding:16px;">אין מטופלים</div>'
+    : all.map(p => `
+        <div class="sb-patient-item ${p.id===currentId?'on':''}" onclick="selectPatient('${p.id}')">
+          <div class="av av-sm" style="background:${avatarColor(p.id)}">${initials(p.name)}</div>
+          <div class="sb-patient-name">${esc(p.name)}</div>
+          <div class="sb-patient-count">${(p.treatments||[]).length}</div>
+        </div>`).join('');
+
+  // mobile panel list
+  const mob = document.getElementById('mobPatientsList');
+  if(mob) {
+    mob.innerHTML = '<div class="sb-label">מטופלים</div>' + (all.length===0
+      ? '<div style="color:rgba(255,255,255,0.3);font-size:13px;text-align:center;padding:16px;">אין מטופלים</div>'
+      : all.map(p => `
+          <div class="sb-patient-item ${p.id===currentId?'on':''}" onclick="closeMobPanel();selectPatient('${p.id}')">
+            <div class="av av-sm" style="background:${avatarColor(p.id)}">${initials(p.name)}</div>
+            <div class="sb-patient-name">${esc(p.name)}</div>
+            <div class="sb-patient-count">${(p.treatments||[]).length}</div>
+          </div>`).join(''));
+  }
+}
+
+function filterPatients(v) { renderSidebar(v); }
+
+function renderPickerList() {
+  const list = document.getElementById('patientsPickerList');
+  const all = Object.values(patients);
+  list.innerHTML = all.length===0
+    ? '<div style="color:var(--t3);text-align:center;padding:16px;">אין מטופלים עדיין</div>'
+    : all.map(p => `
+        <div class="sb-patient-item" style="background:var(--bg);border-radius:10px;margin-bottom:8px;" onclick="selectPatient('${p.id}');closeModal('patientsListModal')">
+          <div class="av av-sm" style="background:${avatarColor(p.id)}">${initials(p.name)}</div>
+          <span style="font-weight:700;font-size:15px;">${esc(p.name)}</span>
+        </div>`).join('');
+}
+
+// ─── SELECT PATIENT ───────────────────────────────────────
+function selectPatient(id) {
+  currentId = id;
+  renderSidebar();
+  showView('patient');
+  renderPatientView();
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────
+function renderDashboard() {
+  const now = new Date();
+  const mKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+
+  let totalPts = Object.keys(patients).length;
+  let totalSessions = 0, monthSessions = 0, totalIncome = 0, monthIncome = 0;
+
+  Object.values(patients).forEach(p => {
+    (p.treatments||[]).forEach(t => {
+      totalSessions++;
+      totalIncome += trAmount(t);
+      if(t.date && t.date.startsWith(mKey)) { monthSessions++; monthIncome += trAmount(t); }
+    });
+  });
+
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-card"><div class="stat-stripe" style="background:var(--primary)"></div>
+      <div class="stat-label">מטופלים פעילים</div>
+      <div class="stat-val">${totalPts}</div>
+      <div class="stat-sub">מטופלים בסך הכל</div>
+      <div class="stat-emoji">👥</div></div>
+    <div class="stat-card"><div class="stat-stripe" style="background:var(--pink)"></div>
+      <div class="stat-label">טיפולים החודש</div>
+      <div class="stat-val">${monthSessions}</div>
+      <div class="stat-sub">סה"כ: ${totalSessions} טיפולים</div>
+      <div class="stat-emoji">🎯</div></div>
+    <div class="stat-card"><div class="stat-stripe" style="background:var(--green)"></div>
+      <div class="stat-label">הכנסות החודש</div>
+      <div class="stat-val">₪${monthIncome}</div>
+      <div class="stat-sub">סה"כ: ₪${totalIncome}</div>
+      <div class="stat-emoji">💰</div></div>`;
+
+  const grid = document.getElementById('dashPatients');
+  const all = Object.values(patients);
+  if(all.length===0) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <div class="empty-icon">🏥</div>
+      <div class="empty-t">אין מטופלים עדיין</div>
+      <div class="empty-s">לחצי "מטופל חדש" להתחיל</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = all.map(p => {
+    const sessions = (p.treatments||[]).length;
+    const income = patientTotal(p);
+    return `
+      <div class="pt-card" onclick="selectPatient('${p.id}')">
+        <div class="pt-card-top">
+          <div class="av av-md" style="background:${avatarColor(p.id)}">${initials(p.name)}</div>
+          <div>
+            <div class="pt-card-name">${esc(p.name)}</div>
+            <div class="pt-card-age">גיל ${p.age||'—'} • מ-${fmtDate(p.startDate)}</div>
+          </div>
+        </div>
+        <div class="pt-card-stats">
+          <div class="pt-mini-stat"><div class="v">${sessions}</div><div class="l">טיפולים</div></div>
+          <div class="pt-mini-stat"><div class="v" style="color:var(--green)">₪${income}</div><div class="l">הכנסות</div></div>
+        </div>
+      </div>`;}).join('');
+}
+
+// ─── PATIENT VIEW ─────────────────────────────────────────
+function renderPatientView() {
+  const p = patients[currentId];
+  if(!p) return;
+
+  const sessions = (p.treatments||[]).length;
+  const income = patientTotal(p);
+  const now = new Date();
+  const mKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const monthSessions = (p.treatments||[]).filter(t=>t.date&&t.date.startsWith(mKey)).length;
+  const color = avatarColor(currentId);
+
+  document.getElementById('ptHeaderArea').innerHTML = `
+    <div class="pt-header">
+      <div class="pt-header-top">
+        <div class="av av-lg" style="background:${color}">${initials(p.name)}</div>
+        <div style="flex:1">
+          <div class="pt-header-name">${esc(p.name)}</div>
+          <div class="pt-header-meta">גיל ${p.age||'—'} • טיפול מ-${fmtDate(p.startDate)}</div>
+        </div>
+        <button class="pt-header-edit" onclick="openPatientModal(true)">✎</button>
+      </div>
+      <div class="pt-header-stats">
+        <div class="pt-stat">
+          <div class="v" style="color:var(--primary)">${sessions}</div>
+          <div class="l">טיפולים</div>
+        </div>
+        <div class="pt-stat">
+          <div class="v" style="color:var(--green)">₪${income}</div>
+          <div class="l">הכנסות</div>
+        </div>
+        <div class="pt-stat">
+          <div class="v" style="color:var(--pink)">${monthSessions}</div>
+          <div class="l">החודש</div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('ptInfoGrid').innerHTML = `
+    <div class="info-chip"><div class="info-chip-lbl">גיל</div><div class="info-chip-val">${p.age||'—'}</div></div>
+    <div class="info-chip"><div class="info-chip-lbl">תאריך התחלה</div><div class="info-chip-val">${fmtDate(p.startDate)}</div></div>
+    <div class="info-chip full"><div class="info-chip-lbl">סיבת התייעצות</div><div class="info-chip-val" style="font-weight:400">${esc(p.reason)||'—'}</div></div>`;
+
+  // metrics
+  const metrics = p.metrics||[];
+  document.getElementById('ptMetrics').innerHTML = metrics.length===0
+    ? '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📊</div><div class="empty-t">אין מדדים עדיין</div></div>'
+    : metrics.map(m=>`
+        <div class="metric-card">
+          <div class="metric-type">${METRIC_NAMES[m.type]||m.type}</div>
+          <div class="metric-score">${m.score}</div>
+          <div class="metric-date">${fmtDate(m.date)}</div>
+        </div>`).join('');
+
+  // treatments
+  const treatments = p.treatments||[];
+  document.getElementById('ptTreatments').innerHTML = treatments.length===0
+    ? '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🎯</div><div class="empty-t">אין כרטיסיות עדיין</div><div class="empty-s">הוסיפי כרטיסיה לכל פגישת טיפול</div></div>'
+    : treatments.map((t,i)=>`
+        <div class="tr-card">
+          <div class="tr-card-head">
+            <div class="tr-session-num">טיפול מס' ${i+1}</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="background:rgba(255,255,255,0.2);padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700;">₪${trAmount(t)}</div>
+              <div class="tr-session-date">${fmtDate(t.date)}</div>
+            </div>
+          </div>
+          <div class="tr-card-body">
+            ${t.homework?`<div class="tr-field"><div class="tr-field-lbl">📝 שיעורי בית</div><div class="tr-field-val">${esc(t.homework)}</div></div>`:''}
+            ${t.topics?`<div class="tr-field"><div class="tr-field-lbl">🗂 נושאים לטיפול</div><div class="tr-field-val">${esc(t.topics)}</div></div>`:''}
+            ${!t.homework&&!t.topics?'<div style="color:var(--t3);font-size:13px;text-align:center;padding:8px">אין פרטים</div>':''}
+            <div class="tr-actions">
+              <button class="btn-act edit" onclick="openTreatmentModal('${t.id}')">ערוך</button>
+              <button class="btn-act del" onclick="confirmDeleteTreatment('${t.id}')">מחק</button>
+            </div>
+          </div>
+        </div>`).join('');
+}
+
+// ─── INCOME VIEW ──────────────────────────────────────────
+function renderIncome() {
+  const now = new Date();
+  const mKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  let total=0, monthTotal=0;
+  const byMonth={};
+  const byPatient=[];
+
+  Object.values(patients).forEach(p=>{
+    let pt=0, pm=0;
+    (p.treatments||[]).forEach(t=>{
+      const amt=trAmount(t);
+      total+=amt; pt+=amt;
+      const k=t.date?t.date.slice(0,7):'no-date';
+      byMonth[k]=(byMonth[k]||0)+amt;
+      if(k===mKey){monthTotal+=amt;pm+=amt;}
+    });
+    byPatient.push({name:p.name,id:p.id,total:pt,month:pm});
+  });
+
+  document.getElementById('incomeTotal').textContent='₪'+total;
+  document.getElementById('incomeThisMonth').textContent='החודש: ₪'+monthTotal;
+
+  const sortedMonths=Object.keys(byMonth).sort().reverse();
+  const maxM=Math.max(...Object.values(byMonth),1);
+  document.getElementById('incomeByMonth').innerHTML=sortedMonths.length===0
+    ?'<div class="empty"><div class="empty-icon">📅</div><div class="empty-t">אין נתונים עדיין</div></div>'
+    :sortedMonths.map(k=>`
+        <div class="income-row">
+          <div><div class="income-row-name">${fmtMonthKey(k)}</div></div>
+          <div class="income-bar-wrap"><div class="income-bar" style="width:${(byMonth[k]/maxM*100).toFixed(0)}%"></div></div>
+          <div class="income-row-total">₪${byMonth[k]}</div>
+        </div>`).join('');
+
+  const sortedPts=byPatient.sort((a,b)=>b.total-a.total);
+  const maxP=Math.max(...sortedPts.map(p=>p.total),1);
+  document.getElementById('incomeByPatient').innerHTML=sortedPts.length===0
+    ?'<div class="empty"><div class="empty-icon">👤</div><div class="empty-t">אין מטופלים עדיין</div></div>'
+    :sortedPts.map(p=>`
+        <div class="income-row" onclick="selectPatient('${p.id}')" style="cursor:pointer">
+          <div>
+            <div class="income-row-name">${esc(p.name)}</div>
+            <div class="income-row-month">החודש: ₪${p.month}</div>
+          </div>
+          <div class="income-bar-wrap"><div class="income-bar" style="width:${(p.total/maxP*100).toFixed(0)}%"></div></div>
+          <div class="income-row-total">₪${p.total}</div>
+        </div>`).join('');
+}
+
+// ─── REPORT VIEW ──────────────────────────────────────────
+let reportExcluded = {};
+
+function initReport() {
+  const now=new Date();
+  const y=now.getFullYear(), m=now.getMonth();
+  document.getElementById('reportFrom').value=new Date(y,m,1).toISOString().split('T')[0];
+  document.getElementById('reportTo').value=now.toISOString().split('T')[0];
+  renderReportFilter();
+}
+
+function renderReportFilter() {
+  const cont=document.getElementById('reportPatientFilter');
+  const all=Object.values(patients);
+  if(all.length===0){ cont.innerHTML='<div style="color:var(--t3);font-size:13px;">אין מטופלים</div>'; return; }
+  cont.innerHTML=all.map(p=>`
+    <div class="rf-chip ${reportExcluded[p.id]?'':'on'}" onclick="toggleReportPatient('${p.id}')">
+      <div class="rf-check">${reportExcluded[p.id]?'':'✓'}</div>
+      ${esc(p.name)}
+    </div>`).join('');
+}
+
+function toggleReportPatient(id) {
+  reportExcluded[id] = !reportExcluded[id];
+  renderReportFilter();
+}
+
+function toggleAllReportPatients(selectAll) {
+  reportExcluded = {};
+  if(!selectAll) Object.keys(patients).forEach(id=>reportExcluded[id]=true);
+  renderReportFilter();
+}
+
+function generateReport() {
+  const from=new Date(document.getElementById('reportFrom').value);
+  const to=new Date(document.getElementById('reportTo').value);
+  to.setHours(23,59,59);
+
+  let html='', grandTotal=0, grandSessions=0, includedCount=0;
+  Object.values(patients).forEach(p=>{
+    if(reportExcluded[p.id]) return;
+    includedCount++;
+    const sessions=(p.treatments||[]).filter(t=>{
+      if(!t.date) return false;
+      const d=new Date(t.date); return d>=from && d<=to;
+    });
+    if(sessions.length===0) return;
+    const income=sessions.reduce((s,t)=>s+trAmount(t),0);
+    grandSessions+=sessions.length; grandTotal+=income;
+    html+=`
+      <div class="stat-card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div class="av av-sm" style="background:${avatarColor(p.id)}">${initials(p.name)}</div>
+          <div style="flex:1;font-weight:700;font-size:16px">${esc(p.name)}</div>
+          <div style="font-weight:800;color:var(--primary);font-size:17px">₪${income}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+          ${sessions.map(s=>`
+            <div style="background:var(--bg);border-radius:9px;padding:10px 12px;font-size:13px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-weight:700;color:var(--primary)">${fmtDate(s.date)}</span>
+                <span style="font-weight:700;color:var(--green);font-size:12px">₪${trAmount(s)}</span>
+              </div>
+              ${s.topics?'<div style="color:var(--t2);margin-top:4px">'+esc(s.topics)+'</div>':''}
+            </div>`).join('')}
+        </div>
+      </div>`;
+  });
+
+  const summary=`
+    <div class="income-hero" style="margin-bottom:18px;">
+      <div>
+        <div class="income-hero-label">דוח ${fmtDate(from.toISOString().split('T')[0])} — ${fmtDate(to.toISOString().split('T')[0])}</div>
+        <div class="income-hero-total">₪${grandTotal}</div>
+        <div class="income-hero-sub">${grandSessions} טיפולים • ${includedCount} מטופלים בדוח</div>
+      </div>
+      <div class="income-hero-icon">📊</div>
+    </div>`;
+
+  document.getElementById('reportOutput').innerHTML = grandSessions===0
+    ? '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-t">אין נתונים בתקופה זו</div></div>'
+    : summary+html;
+}
+
+// ─── MODALS ───────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+document.querySelectorAll('.modal-bg').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');}));
+
+// patient modal
+function openPatientModal(isEdit) {
+  const modal=document.getElementById('patientModal');
+  const delBtn=document.getElementById('deletePatientBtn');
+  if(isEdit && currentId) {
+    const p=patients[currentId];
+    document.getElementById('patientModalTitle').textContent='✎ עריכת מטופל';
+    document.getElementById('fName').value=p.name||'';
+    document.getElementById('fAge').value=p.age||'';
+    document.getElementById('fDate').value=p.startDate||'';
+    document.getElementById('fReason').value=p.reason||'';
+    delBtn.classList.remove('hidden');
+    modal.dataset.mode='edit';
+  } else {
+    document.getElementById('patientModalTitle').textContent='✨ מטופל חדש';
+    document.getElementById('fName').value='';
+    document.getElementById('fAge').value='';
+    document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
+    document.getElementById('fReason').value='';
+    delBtn.classList.add('hidden');
+    modal.dataset.mode='new';
+  }
+  modal.classList.add('show');
+}
+
+document.getElementById('patientForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  const isEdit=document.getElementById('patientModal').dataset.mode==='edit';
+  const id=isEdit?currentId:genId();
+  const existing=patients[id]||{id,metrics:[],treatments:[]};
+  existing.name=document.getElementById('fName').value.trim();
+  existing.age=document.getElementById('fAge').value;
+  existing.startDate=document.getElementById('fDate').value;
+  existing.reason=document.getElementById('fReason').value.trim();
+  if(!existing.metrics)existing.metrics=[];
+  if(!existing.treatments)existing.treatments=[];
+  patients[id]=existing;
+  save();
+  renderSidebar();
+  if(!isEdit){selectPatient(id);}else{renderPatientView();}
+  closeModal('patientModal');
+});
+
+// metric modal
+function openMetricModal() {
+  if(!currentId)return;
+  document.getElementById('mType').value='';
+  document.getElementById('mDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('mScore').value='';
+  document.getElementById('metricModal').classList.add('show');
+}
+
+document.getElementById('metricForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  if(!currentId)return;
+  const p=patients[currentId];
+  if(!p.metrics)p.metrics=[];
+  p.metrics.push({type:document.getElementById('mType').value,date:document.getElementById('mDate').value,score:document.getElementById('mScore').value});
+  save();
+  renderPatientView();
+  closeModal('metricModal');
+});
+
+// treatment modal
+function openTreatmentModal(tid) {
+  if(!currentId)return;
+  const modal=document.getElementById('treatmentModal');
+  if(tid){
+    const p=patients[currentId];
+    const t=(p.treatments||[]).find(x=>x.id===tid);
+    if(!t)return;
+    editingTreatmentId=tid;
+    document.getElementById('treatmentModalTitle').textContent='✎ עריכת כרטיסיה';
+    document.getElementById('tDate').value=t.date||'';
+    document.getElementById('tAmount').value=t.amount!=null?t.amount:300;
+    document.getElementById('tHomework').value=t.homework||'';
+    document.getElementById('tTopics').value=t.topics||'';
+  } else {
+    editingTreatmentId=null;
+    document.getElementById('treatmentModalTitle').textContent='🎯 הוסף כרטיסיה';
+    document.getElementById('tDate').value=new Date().toISOString().split('T')[0];
+    document.getElementById('tAmount').value=300;
+    document.getElementById('tHomework').value='';
+    document.getElementById('tTopics').value='';
+  }
+  modal.classList.add('show');
+}
+
+document.getElementById('treatmentForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  if(!currentId)return;
+  const p=patients[currentId];
+  if(!p.treatments)p.treatments=[];
+  const data={date:document.getElementById('tDate').value,amount:parseInt(document.getElementById('tAmount').value)||0,homework:document.getElementById('tHomework').value.trim(),topics:document.getElementById('tTopics').value.trim()};
+  if(editingTreatmentId){
+    const t=p.treatments.find(x=>x.id===editingTreatmentId);
+    if(t)Object.assign(t,data);
+  } else {data.id=genId();p.treatments.push(data);}
+  save();
+  renderPatientView();
+  renderSidebar();
+  closeModal('treatmentModal');
+});
+
+// confirm dialog
+function showConfirm(msg,sub,onYes) {
+  document.getElementById('confirmText').textContent=msg;
+  document.getElementById('confirmSubText').textContent=sub||'';
+  const btn=document.getElementById('confirmYes');
+  const nb=btn.cloneNode(true);
+  btn.parentNode.replaceChild(nb,btn);
+  nb.addEventListener('click',()=>{closeModal('confirmModal');onYes();});
+  document.getElementById('confirmModal').classList.add('show');
+}
+
+function confirmDeletePatient() {
+  if(!currentId)return;
+  const p=patients[currentId];
+  showConfirm(`למחוק את ${p.name}?`,'פעולה זו אינה ניתנת לביטול',()=>{
+    delete patients[currentId];
+    save();
+    currentId=null;
+    renderSidebar();
+    showView('home');
+    closeModal('patientModal');
+  });
+}
+
+function confirmDeleteTreatment(tid) {
+  showConfirm('למחוק כרטיסיה זו?','',()=>{
+    const p=patients[currentId];
+    p.treatments=(p.treatments||[]).filter(t=>t.id!==tid);
+    save();
+    renderPatientView();
+    renderSidebar();
+  });
+}
+
+// mobile panel
+function openMobPanel() { document.getElementById('mobPanelOverlay').classList.add('show'); renderSidebar(); }
+function closeMobPanel() { document.getElementById('mobPanelOverlay').classList.remove('show'); }
+
+// ─── INIT ─────────────────────────────────────────────────
+load();
+renderSidebar();
+renderDashboard();
+
+// set date & greeting
+const now=new Date();
+document.getElementById('homeDate').textContent=now.toLocaleDateString('he-IL',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+initReport();
+</script>
+</body>
+</html>

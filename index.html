@@ -438,6 +438,10 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.75;strok
   </aside>
 
   <main class="main"><div class="wrap">
+    <div id="updateBanner" style="display:none;background:var(--brand);color:white;padding:12px 16px;border-radius:var(--r-s);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;font-weight:600">
+      <span>📱 גרסה חדשה זמינה - יש ללחוץ כדי לעדכן</span>
+      <button onclick="location.reload()" style="background:#fff;color:var(--brand);border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">עדכן עכשיו</button>
+    </div>
 
     <div id="v-home" class="view">
       <div class="ph">
@@ -628,6 +632,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.75;strok
 </div></div>
 
 <script>
+const APP_VERSION='20250725-v2';
 const ic=(n,c='')=>`<svg class="i ${c}"><use href="#ic-${n}"/></svg>`;
 let patients={},currentId=null,editTreatId=null,rptOff={},rptOffPayment={},rptOffReceipt={},view='home';
 
@@ -1009,6 +1014,15 @@ function askDelMetric(i){
   }catch(e){}
 })();
 
+function checkForUpdate(){
+  const lastVersion=localStorage.getItem('appVersion');
+  if(lastVersion&&lastVersion!==APP_VERSION){
+    document.getElementById('updateBanner').style.display='flex';
+  }
+  localStorage.setItem('appVersion',APP_VERSION);
+}
+
+checkForUpdate();
 load();
 renderSidebar();
 renderDash();

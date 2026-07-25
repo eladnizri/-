@@ -494,7 +494,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.75;strok
     </div>
 
     <div id="v-report" class="view hidden">
-      <div class="ph"><div class="ph-t">דוח תקופתי</div><div class="ph-s">סיכום מסודר לדיווח — בחרי תקופה ומטופלים</div></div>
+      <div class="ph"><div class="ph-t">דוח תקופתי</div><div class="ph-s">סיכום מסודר לדיווח — בחרי תקופה, מטופלים, דרך תשלום וקבלה</div></div>
       <div class="panel">
         <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap">
           <div class="fld" style="margin:0;flex:1;min-width:150px"><label>מתאריך</label><input type="date" id="rFrom"></div>
@@ -510,6 +510,19 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.75;strok
             </div>
           </div>
           <div class="chips" id="rptFilter"></div>
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line-2)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+            <label style="font-size:12px;font-weight:600;color:var(--ink-2)">דרך תשלום</label>
+            <button class="btn-g sm" onclick="toggleAllRptPayments(true)"><svg class="i"><use href="#ic-check"/></svg>הכל</button>
+          </div>
+          <div class="chips" id="rptFilterPayment"></div>
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line-2)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+            <label style="font-size:12px;font-weight:600;color:var(--ink-2)">קבלה</label>
+          </div>
+          <div class="chips" id="rptFilterReceipt"></div>
         </div>
       </div>
       <div id="rptOut"></div>
@@ -575,6 +588,19 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.75;strok
         </div>
       </div>
     </div>
+    <div class="frow">
+      <div class="fld"><label>דרך תשלום</label><select id="tPayment">
+        <option value="">בחרי דרך תשלום</option>
+        <option value="מזומן">מזומן</option>
+        <option value="ביט">ביט</option>
+        <option value="פייבוקס">פייבוקס</option>
+        <option value="אחר">אחר</option>
+      </select></div>
+      <div class="fld" style="display:flex;align-items:flex-end;gap:8px">
+        <input type="checkbox" id="tReceipt" style="width:auto;margin:0">
+        <label style="margin:0;flex:1">עם קבלה</label>
+      </div>
+    </div>
     <div class="fld"><label>שיעורי בית</label><textarea id="tHomework" placeholder="מה נשלח לתרגול עד הפגישה הבאה..."></textarea></div>
     <div class="fld"><label>נושאים שעובדו בפגישה</label><textarea id="tTopics" placeholder="נושאים, טכניקות, תובנות..."></textarea></div>
     <div class="macts">
@@ -603,7 +629,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.75;strok
 
 <script>
 const ic=(n,c='')=>`<svg class="i ${c}"><use href="#ic-${n}"/></svg>`;
-let patients={},currentId=null,editTreatId=null,rptOff={},view='home';
+let patients={},currentId=null,editTreatId=null,rptOff={},rptOffPayment={},rptOffReceipt={},view='home';
 
 const MET={anxiety:'שאלון חרדה',depression:'שאלון דיכאון',mood1:'יומן מצב רוח 1',mood2:'יומן מצב רוח 2',mood3:'יומן מצב רוח 3'};
 const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -742,6 +768,7 @@ function renderPatient(){
           <div class="tcard-amt">${money(amt(t))}</div>
         </div>
         <div class="tcard-b">
+          ${t.payment_method||t.with_receipt?`<div style="font-size:12px;color:var(--ink-2);margin-bottom:8px;display:flex;gap:12px;flex-wrap:wrap"><span>${t.payment_method?'💳 '+t.payment_method:''}</span><span>${t.with_receipt?'✓ עם קבלה':''}</span></div>`:''}
           ${t.homework?`<div class="tf"><div class="tf-l">${ic('note')}שיעורי בית</div><div class="tf-v">${esc(t.homework)}</div></div>`:''}
           ${t.topics?`<div class="tf"><div class="tf-l">${ic('sparkle')}נושאים בפגישה</div><div class="tf-v">${esc(t.topics)}</div></div>`:''}
           ${!t.homework&&!t.topics?'<div style="color:var(--ink-3);font-size:14px;text-align:center;padding:10px">לא תועדו פרטים</div>':''}
@@ -789,6 +816,7 @@ function initReport(){
   const n=new Date();
   document.getElementById('rFrom').value=new Date(n.getFullYear(),n.getMonth(),1).toLocaleDateString('sv');
   document.getElementById('rTo').value=n.toLocaleDateString('sv');
+  rptOff={};rptOffPayment={};rptOffReceipt={};
   renderRptFilter();
 }
 function renderRptFilter(){
@@ -796,9 +824,22 @@ function renderRptFilter(){
   c.innerHTML=all.length===0?'<div style="color:var(--ink-3);font-size:13.5px">אין מטופלים</div>'
     :all.map(p=>`<div class="chip ${rptOff[p.id]?'':'on'}" onclick="toggleRpt('${p.id}')">
         <div class="chip-c">${rptOff[p.id]?'':'✓'}</div>${esc(p.name)}</div>`).join('');
+
+  const payments=['מזומן','ביט','פייבוקס','אחר'],pc=document.getElementById('rptFilterPayment');
+  pc.innerHTML=payments.map(p=>`<div class="chip ${rptOffPayment[p]?'':'on'}" onclick="toggleRptPayment('${p}')">
+        <div class="chip-c">${rptOffPayment[p]?'':'✓'}</div>${p}</div>`).join('');
+
+  const rc=document.getElementById('rptFilterReceipt');
+  rc.innerHTML=`<div class="chip ${rptOffReceipt['yes']?'':'on'}" onclick="toggleRptReceipt('yes')">
+        <div class="chip-c">${rptOffReceipt['yes']?'':'✓'}</div>עם קבלה</div>
+      <div class="chip ${rptOffReceipt['no']?'':'on'}" onclick="toggleRptReceipt('no')">
+        <div class="chip-c">${rptOffReceipt['no']?'':'✓'}</div>בלי קבלה</div>`;
 }
 function toggleRpt(id){rptOff[id]=!rptOff[id];renderRptFilter()}
 function toggleAllRpt(on){rptOff={};if(!on)Object.keys(patients).forEach(i=>rptOff[i]=true);renderRptFilter()}
+function toggleRptPayment(method){rptOffPayment[method]=!rptOffPayment[method];renderRptFilter()}
+function toggleAllRptPayments(on){rptOffPayment={};if(!on)['מזומן','ביט','פייבוקס','אחר'].forEach(m=>rptOffPayment[m]=true);renderRptFilter()}
+function toggleRptReceipt(status){rptOffReceipt[status]=!rptOffReceipt[status];renderRptFilter()}
 
 function genReport(){
   const f=document.getElementById('rFrom').value,t=document.getElementById('rTo').value;
@@ -806,7 +847,15 @@ function genReport(){
   let html='',gt=0,gs=0,np=0;
   Object.values(patients).forEach(p=>{
     if(rptOff[p.id])return;
-    const ses=(p.treatments||[]).filter(x=>x.date&&x.date>=f&&x.date<=t);
+    let ses=(p.treatments||[]).filter(x=>x.date&&x.date>=f&&x.date<=t);
+    ses=ses.filter(x=>{
+      const pm=x.payment_method||'';
+      if(pm&&rptOffPayment[pm])return false;
+      const hasReceipt=x.with_receipt||false;
+      if(hasReceipt&&rptOffReceipt['yes'])return false;
+      if(!hasReceipt&&rptOffReceipt['no'])return false;
+      return true;
+    });
     if(ses.length===0)return;
     np++;
     const inc=ses.reduce((s,x)=>s+amt(x),0);gs+=ses.length;gt+=inc;
@@ -816,11 +865,12 @@ function genReport(){
         <div class="rpt-v">${money(inc)}</div></div>
       <div class="rpt-ses">${ses.map(s=>`<div class="rpt-s">
         <div class="rpt-s-top"><span class="rpt-s-d">${fmtDs(s.date)}</span><span class="rpt-s-a">${money(amt(s))}</span></div>
+        ${s.payment_method||s.with_receipt?`<div style="font-size:11px;color:var(--ink-2);margin-top:4px"><span>${s.payment_method?'💳 '+s.payment_method+' · ':''}</span><span>${s.with_receipt?'✓ עם קבלה':'בלי קבלה'}</span></div>`:''}
         ${s.topics?`<div class="rpt-s-t">${esc(s.topics)}</div>`:''}</div>`).join('')}</div></div>`;
   });
   document.getElementById('rptOut').innerHTML=gs===0
     ?`<div class="empty"><div class="empty-ic">${ic('search')}</div><div class="empty-t">אין נתונים בתקופה שנבחרה</div>
-       <div class="empty-s">נסי לשנות את התאריכים או את בחירת המטופלים</div></div>`
+       <div class="empty-s">נסי לשנות את התאריכים, המטופלים, או הפילטרים האחרים</div></div>`
     :`<div class="ihero" style="margin-bottom:20px"><div>
         <div class="ihero-l">${fmtDs(f)} — ${fmtDs(t)}</div>
         <div class="ihero-v">${money(gt)}</div>
@@ -881,11 +931,11 @@ function openTreatmentModal(id){
     const t=(patients[currentId].treatments||[]).find(x=>x.id===id);if(!t)return;
     editTreatId=id;
     document.getElementById('mdTreatTitle').textContent='עריכת כרטיסייה';
-    tDate.value=t.date||'';tAmount.value=amt(t);tHomework.value=t.homework||'';tTopics.value=t.topics||'';
+    tDate.value=t.date||'';tAmount.value=amt(t);tHomework.value=t.homework||'';tTopics.value=t.topics||'';tPayment.value=t.payment_method||'';tReceipt.checked=t.with_receipt||false;
   }else{
     editTreatId=null;
     document.getElementById('mdTreatTitle').textContent='כרטיסיית טיפול חדשה';
-    tDate.value=new Date().toLocaleDateString('sv');tAmount.value=300;tHomework.value='';tTopics.value='';
+    tDate.value=new Date().toLocaleDateString('sv');tAmount.value=300;tHomework.value='';tTopics.value='';tPayment.value='';tReceipt.checked=false;
   }
   syncPreset();
   document.getElementById('mdTreat').classList.add('show');
@@ -893,7 +943,7 @@ function openTreatmentModal(id){
 document.getElementById('frmTreat').addEventListener('submit',e=>{
   e.preventDefault();if(!currentId)return;
   const p=patients[currentId];p.treatments=p.treatments||[];
-  const d={date:tDate.value,amount:parseInt(tAmount.value)||0,homework:tHomework.value.trim(),topics:tTopics.value.trim()};
+  const d={date:tDate.value,amount:parseInt(tAmount.value)||0,homework:tHomework.value.trim(),topics:tTopics.value.trim(),payment_method:tPayment.value,with_receipt:tReceipt.checked};
   if(editTreatId){const t=p.treatments.find(x=>x.id===editTreatId);if(t)Object.assign(t,d)}
   else{d.id=genId();p.treatments.push(d)}
   p.treatments.sort((a,b)=>(a.date||'').localeCompare(b.date||''));

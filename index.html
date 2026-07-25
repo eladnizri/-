@@ -601,8 +601,17 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.75;strok
         <option value="אחר">אחר</option>
       </select></div>
       <div class="fld" style="display:flex;align-items:flex-end;gap:8px">
-        <input type="checkbox" id="tReceipt" style="width:auto;margin:0">
+        <input type="checkbox" id="tReceipt" style="width:auto;margin:0" onchange="updateVatFields()">
         <label style="margin:0;flex:1">עם קבלה</label>
+      </div>
+    </div>
+    <div id="vatFields" style="display:none">
+      <div class="frow">
+        <div class="fld"><label>סכום לפני מע״מ (₪)</label><input type="number" id="tAmountBeforeTax" min="0" step="10" placeholder="הקלדי סכום בלי מע״מ" oninput="calcVat()"></div>
+      </div>
+      <div style="background:var(--brand-l);padding:12px;border-radius:var(--r-s);font-size:13px;color:var(--ink)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>מע״מ (18%):</span><span id="vatAmount" style="font-weight:700">₪0</span></div>
+        <div style="display:flex;justify-content:space-between;border-top:1px solid var(--brand);padding-top:6px"><span style="font-weight:600">סה״כ (כולל מע״מ):</span><span id="vatTotal" style="font-weight:700;font-size:14px">₪0</span></div>
       </div>
     </div>
     <div class="fld"><label>שיעורי בית</label><textarea id="tHomework" placeholder="מה נשלח לתרגול עד הפגישה הבאה..."></textarea></div>
@@ -774,6 +783,7 @@ function renderPatient(){
         </div>
         <div class="tcard-b">
           ${t.payment_method||t.with_receipt?`<div style="font-size:12px;color:var(--ink-2);margin-bottom:8px;display:flex;gap:12px;flex-wrap:wrap"><span>${t.payment_method?'💳 '+t.payment_method:''}</span><span>${t.with_receipt?'✓ עם קבלה':''}</span></div>`:''}
+          ${t.amount_before_tax?`<div style="font-size:11px;background:var(--brand-l);padding:8px;border-radius:6px;margin-bottom:8px;display:flex;justify-content:space-between"><span style="color:var(--ink-2)">לפני מע״מ: <strong>${money(t.amount_before_tax)}</strong></span><span style="color:var(--ink-2)">אחרי: <strong>${money(amt(t))}</strong></span></div>`:''}
           ${t.homework?`<div class="tf"><div class="tf-l">${ic('note')}שיעורי בית</div><div class="tf-v">${esc(t.homework)}</div></div>`:''}
           ${t.topics?`<div class="tf"><div class="tf-l">${ic('sparkle')}נושאים בפגישה</div><div class="tf-v">${esc(t.topics)}</div></div>`:''}
           ${!t.homework&&!t.topics?'<div style="color:var(--ink-3);font-size:14px;text-align:center;padding:10px">לא תועדו פרטים</div>':''}
@@ -785,19 +795,21 @@ function renderPatient(){
 }
 
 function renderIncome(){
-  const k=mKey();let tot=0,mt=0;const byM={},byP=[];
+  const k=mKey();let tot=0,mt=0,totBeforeTax=0,mtBeforeTax=0;const byM={},byP=[];
   Object.values(patients).forEach(p=>{
-    let pt=0,pm=0;
+    let pt=0,pm=0,ptBefore=0,pmBefore=0;
     (p.treatments||[]).forEach(t=>{
       const a=amt(t);tot+=a;pt+=a;
+      const before=t.amount_before_tax||0;totBeforeTax+=before;ptBefore+=before;
       const key=t.date?t.date.slice(0,7):'none';
       byM[key]=(byM[key]||0)+a;
-      if(key===k){mt+=a;pm+=a}
+      if(key===k){mt+=a;pm+=a;mtBeforeTax+=before;pmBefore+=before}
     });
     byP.push({id:p.id,name:p.name,total:pt,month:pm});
   });
-  document.getElementById('incTotal').textContent=money(tot);
-  document.getElementById('incMonth').textContent='החודש הנוכחי · '+money(mt);
+  const hasBeforeTax=totBeforeTax>0;
+  document.getElementById('incTotal').textContent=money(tot)+(hasBeforeTax?' (לאחר מע״מ)':'');
+  document.getElementById('incMonth').textContent='החודש הנוכחי · '+money(mt)+(hasBeforeTax?' (לאחר מע״מ)':'');
 
   const mk=Object.keys(byM).sort().reverse(),maxM=Math.max(...Object.values(byM),1);
   document.getElementById('incByMonth').innerHTML=mk.length===0
@@ -871,6 +883,7 @@ function genReport(){
       <div class="rpt-ses">${ses.map(s=>`<div class="rpt-s">
         <div class="rpt-s-top"><span class="rpt-s-d">${fmtDs(s.date)}</span><span class="rpt-s-a">${money(amt(s))}</span></div>
         ${s.payment_method||s.with_receipt?`<div style="font-size:11px;color:var(--ink-2);margin-top:4px"><span>${s.payment_method?'💳 '+s.payment_method+' · ':''}</span><span>${s.with_receipt?'✓ עם קבלה':'בלי קבלה'}</span></div>`:''}
+        ${s.amount_before_tax?`<div style="font-size:10px;color:var(--ink-3);margin-top:2px">לפני מע״מ: ${money(s.amount_before_tax)}</div>`:''}
         ${s.topics?`<div class="rpt-s-t">${esc(s.topics)}</div>`:''}</div>`).join('')}</div></div>`;
   });
   document.getElementById('rptOut').innerHTML=gs===0
@@ -930,25 +943,45 @@ function setAmt(v){tAmount.value=v;syncPreset()}
 function syncPreset(){
   document.querySelectorAll('.preset').forEach(b=>b.classList.toggle('on',b.dataset.v===String(tAmount.value)));
 }
+function updateVatFields(){
+  const vatFields=document.getElementById('vatFields');
+  if(tReceipt.checked){
+    vatFields.style.display='block';
+    calcVat();
+  }else{
+    vatFields.style.display='none';
+    tAmountBeforeTax.value='';
+  }
+}
+function calcVat(){
+  const beforeTax=parseFloat(tAmountBeforeTax.value)||0;
+  const vat=beforeTax*0.18;
+  const total=beforeTax+vat;
+  document.getElementById('vatAmount').textContent='₪'+vat.toFixed(0);
+  document.getElementById('vatTotal').textContent='₪'+total.toFixed(0);
+  tAmount.value=Math.round(total);
+  syncPreset();
+}
 function openTreatmentModal(id){
   if(!currentId)return;
   if(id){
     const t=(patients[currentId].treatments||[]).find(x=>x.id===id);if(!t)return;
     editTreatId=id;
     document.getElementById('mdTreatTitle').textContent='עריכת כרטיסייה';
-    tDate.value=t.date||'';tAmount.value=amt(t);tHomework.value=t.homework||'';tTopics.value=t.topics||'';tPayment.value=t.payment_method||'';tReceipt.checked=t.with_receipt||false;
+    tDate.value=t.date||'';tAmount.value=amt(t);tHomework.value=t.homework||'';tTopics.value=t.topics||'';tPayment.value=t.payment_method||'';tReceipt.checked=t.with_receipt||false;tAmountBeforeTax.value=t.amount_before_tax||'';
   }else{
     editTreatId=null;
     document.getElementById('mdTreatTitle').textContent='כרטיסיית טיפול חדשה';
-    tDate.value=new Date().toLocaleDateString('sv');tAmount.value=300;tHomework.value='';tTopics.value='';tPayment.value='';tReceipt.checked=false;
+    tDate.value=new Date().toLocaleDateString('sv');tAmount.value=300;tHomework.value='';tTopics.value='';tPayment.value='';tReceipt.checked=false;tAmountBeforeTax.value='';
   }
   syncPreset();
+  updateVatFields();
   document.getElementById('mdTreat').classList.add('show');
 }
 document.getElementById('frmTreat').addEventListener('submit',e=>{
   e.preventDefault();if(!currentId)return;
   const p=patients[currentId];p.treatments=p.treatments||[];
-  const d={date:tDate.value,amount:parseInt(tAmount.value)||0,homework:tHomework.value.trim(),topics:tTopics.value.trim(),payment_method:tPayment.value,with_receipt:tReceipt.checked};
+  const d={date:tDate.value,amount:parseInt(tAmount.value)||0,homework:tHomework.value.trim(),topics:tTopics.value.trim(),payment_method:tPayment.value,with_receipt:tReceipt.checked,amount_before_tax:tReceipt.checked?parseInt(tAmountBeforeTax.value)||0:null};
   if(editTreatId){const t=p.treatments.find(x=>x.id===editTreatId);if(t)Object.assign(t,d)}
   else{d.id=genId();p.treatments.push(d)}
   p.treatments.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
